@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Snipercode — IDE Chirurgical</title>
     
     <!-- Polices -->
@@ -37,8 +37,8 @@
                     boxShadow: {
                         'neu-dark': 'inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 20px rgba(0,0,0,0.6)',
                         'neu-pressed': 'inset 0 2px 4px rgba(0,0,0,0.6), inset 0 -1px 0 rgba(255,255,255,0.03)',
-                        'glow-violet': '0 0 15px rgba(139,92,246,0.3), 0 0 30px rgba(139,92,246,0.1)',
-                        'glow-amber': '0 0 10px rgba(245,158,11,0.3), 0 0 20px rgba(245,158,11,0.1)',
+                        'glow-violet': '0 0 12px rgba(139,92,246,0.3), 0 0 24px rgba(139,92,246,0.1)',
+                        'glow-amber': '0 0 8px rgba(245,158,11,0.3), 0 0 16px rgba(245,158,11,0.1)',
                     },
                 }
             }
@@ -47,42 +47,43 @@
     
     <style>
         body {
-            background: radial-gradient(ellipse at 50% 0%, #121218 0%, #0b0b0d 70%);
+            background: #0b0b0d;
             letter-spacing: -0.01em;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
         }
         
         ::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
+            width: 3px;
+            height: 3px;
         }
         ::-webkit-scrollbar-track {
-            background: #0f0f11;
-            border-radius: 3px;
+            background: transparent;
         }
         ::-webkit-scrollbar-thumb {
             background: #27272a;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #3f3f46;
+            border-radius: 2px;
         }
         
         .btn-press {
             transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-tap-highlight-color: transparent;
         }
         .btn-press:active {
-            transform: scale(0.98);
+            transform: scale(0.97);
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), inset 0 -1px 0 rgba(255,255,255,0.03);
         }
         
         @keyframes pulse-amber {
-            0% { opacity: 0.4; transform: scale(0.85); box-shadow: 0 0 6px rgba(245,158,11,0.3); }
-            100% { opacity: 1; transform: scale(1.1); box-shadow: 0 0 14px rgba(245,158,11,0.7); }
+            0% { opacity: 0.4; transform: scale(0.85); box-shadow: 0 0 4px rgba(245,158,11,0.2); }
+            100% { opacity: 1; transform: scale(1.1); box-shadow: 0 0 10px rgba(245,158,11,0.6); }
         }
         
         .editor-box {
             tab-size: 2;
             caret-color: #8b5cf6;
+            -webkit-overflow-scrolling: touch;
         }
         .editor-box::selection {
             background: rgba(139,92,246,0.35);
@@ -90,7 +91,25 @@
         }
         
         input:focus, textarea:focus {
-            box-shadow: 0 0 0 2px rgba(139,92,246,0.25), inset 0 1px 0 rgba(255,255,255,0.03);
+            box-shadow: 0 0 0 1.5px rgba(139,92,246,0.3), inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+        
+        .file-list-container {
+            max-height: calc(100vh - 320px);
+            max-height: calc(100dvh - 320px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .file-card {
+            margin-bottom: 8px;
+        }
+        
+        @media (min-width: 640px) {
+            .file-list-container {
+                max-height: calc(100vh - 340px);
+                max-height: calc(100dvh - 340px);
+            }
         }
     </style>
 
@@ -99,102 +118,108 @@
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body onload="loadConfig()" class="font-sans text-zinc-100 antialiased h-screen h-[100dvh] flex flex-col">
 
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4b6cb7">
-<link rel="apple-touch-icon" href="icon.png"></head>
-<body onload="loadConfig()" class="font-sans text-zinc-100 antialiased min-h-screen p-4 md:p-6">
-
-    <!-- Toast -->
-    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-[3000] 
-                bg-cyber-amber text-deep-900 font-bold px-6 py-3 rounded-xl 
-                shadow-[0_8px_30px_rgba(0,0,0,0.7)] hidden text-sm tracking-wide">
+    <!-- Toast compact -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[3000] 
+                bg-cyber-amber text-deep-900 font-bold px-5 py-2.5 rounded-lg text-xs
+                shadow-[0_8px_25px_rgba(0,0,0,0.7)] hidden tracking-wide">
     </div>
 
     <!-- Barre de confirmation -->
-    <div id="confirmBar" class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[500px] 
-                bg-deep-600/95 backdrop-blur-md border-2 border-cyber-amber/50 rounded-2xl p-6 
-                z-[2000] hidden flex-col gap-5 shadow-[0_0_40px_rgba(0,0,0,0.8)]">
-        <span id="confirmMsg" class="text-center text-white font-bold text-sm tracking-wider"></span>
-        <div class="flex gap-3 w-full">
-            <button class="btn-press flex-1 py-3 bg-zinc-700 rounded-xl text-white font-semibold text-sm uppercase tracking-wider hover:bg-zinc-600 transition-colors" 
+    <div id="confirmBar" class="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-20px)] max-w-[440px] 
+                bg-deep-600/98 backdrop-blur-md border border-cyber-amber/40 rounded-2xl p-5 
+                z-[2000] hidden flex-col gap-4 shadow-[0_0_50px_rgba(0,0,0,0.9)]">
+        <span id="confirmMsg" class="text-center text-white font-semibold text-xs tracking-wider"></span>
+        <div class="flex gap-2.5 w-full">
+            <button class="btn-press flex-1 py-2.5 bg-zinc-700/80 rounded-xl text-white font-semibold text-[11px] uppercase tracking-wider hover:bg-zinc-600 transition-colors" 
                     onclick="closeConfirm()">Annuler</button>
-            <button class="btn-press flex-1 py-3 bg-cyber-violet rounded-xl text-white font-bold text-sm uppercase tracking-wider shadow-glow-violet hover:bg-cyber-violet-hover transition-all" 
+            <button class="btn-press flex-1 py-2.5 bg-cyber-violet rounded-xl text-white font-bold text-[11px] uppercase tracking-wider shadow-glow-violet hover:bg-cyber-violet-hover transition-all" 
                     id="finalSaveBtn">Confirmer</button>
         </div>
     </div>
 
-    <!-- Conteneur principal -->
-    <div class="w-full max-w-[880px] mx-auto pb-20">
+    <!-- Header compact -->
+    <header class="flex-shrink-0 px-4 pt-3 pb-2 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 bg-cyber-violet rounded-full shadow-glow-violet animate-pulse"></span>
+            <h1 class="text-base font-bold tracking-[0.15em] text-white uppercase">Snipercode</h1>
+        </div>
+        <span class="text-[9px] text-zinc-700 font-mono uppercase tracking-wider">IDE v2.0</span>
+    </header>
 
-        <!-- Carte de connexion -->
-        <div class="bg-deep-600/80 backdrop-blur-sm border border-zinc-800/60 rounded-2xl p-6 mb-6 shadow-neu-dark">
+    <!-- Conteneur principal scrollable -->
+    <div class="flex-1 overflow-y-auto px-3 pb-3" id="mainScroll">
+        
+        <!-- Carte de connexion ultra-compacte -->
+        <div class="bg-deep-600/80 backdrop-blur-sm border border-zinc-800/60 rounded-xl p-3.5 mb-3 shadow-neu-dark">
             
             <!-- Token -->
-            <div class="relative mb-4">
-                <label class="block text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 mb-3 ml-1">
-                    GitHub Token
+            <div class="mb-2.5">
+                <label class="block text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500 mb-1.5 ml-0.5">
+                    Token
                 </label>
                 <div class="relative">
-                    <input type="password" id="ghToken" placeholder="Sauvegardé localement" oninput="saveConfig()"
-                           class="w-full bg-deep-700 border border-zinc-800/40 rounded-xl pl-4 pr-12 py-3.5 
-                                  text-cyber-amber font-mono text-sm placeholder-zinc-600
-                                  shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] border-l-[3px] border-l-cyber-amber/70
+                    <input type="password" id="ghToken" placeholder="ghp_..." oninput="saveConfig()"
+                           class="w-full bg-deep-700 border border-zinc-800/40 rounded-lg pl-3 pr-10 py-2.5 
+                                  text-cyber-amber font-mono text-xs placeholder-zinc-600
+                                  shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] border-l-[2px] border-l-cyber-amber/60
                                   focus:outline-none transition-all duration-200">
-                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 text-sm pointer-events-none">🔒</span>
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px] pointer-events-none">🔒</span>
                 </div>
             </div>
 
             <!-- Repo -->
-            <div class="mb-5">
-                <label class="block text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 mb-3 ml-1">
+            <div class="mb-3">
+                <label class="block text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500 mb-1.5 ml-0.5">
                     Dépôt
                 </label>
-                <input type="text" id="repoName" placeholder="pseudo/repository" oninput="saveConfig()"
-                       class="w-full bg-deep-700 border border-zinc-800/40 rounded-xl px-4 py-3.5 
-                              text-zinc-100 font-mono text-sm placeholder-zinc-600
-                              shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] 
+                <input type="text" id="repoName" placeholder="user/repo" oninput="saveConfig()"
+                       class="w-full bg-deep-700 border border-zinc-800/40 rounded-lg px-3 py-2.5 
+                              text-zinc-100 font-mono text-xs placeholder-zinc-600
+                              shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] 
                               focus:outline-none transition-all duration-200">
             </div>
 
-            <!-- Actions -->
-            <div class="space-y-3">
-                <button class="btn-press w-full py-4 bg-cyber-violet hover:bg-cyber-violet-hover 
-                               text-white font-bold text-sm uppercase tracking-[0.12em] rounded-xl
-                               shadow-glow-violet transition-all duration-200 flex items-center justify-center gap-2"
+            <!-- Actions groupées -->
+            <div class="space-y-2">
+                <button class="btn-press w-full py-2.5 bg-cyber-violet hover:bg-cyber-violet-hover 
+                               text-white font-bold text-[11px] uppercase tracking-[0.1em] rounded-lg
+                               shadow-glow-violet transition-all duration-200 flex items-center justify-center gap-1.5"
                         onclick="fetchRepo()">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                     </svg>
-                    Charger le Projet
+                    Charger
                 </button>
 
-                <div class="flex items-center gap-4 py-1">
-                    <div class="status-dot status-indicator w-2.5 h-2.5 rounded-full bg-zinc-700 transition-all duration-300 flex-shrink-0"></div>
-                    <button class="btn-press flex-1 py-3 bg-transparent border border-cyber-amber/40 rounded-xl
-                                   text-cyber-amber font-semibold text-xs uppercase tracking-[0.1em]
-                                   hover:bg-cyber-amber/5 hover:border-cyber-amber/70 transition-all duration-200"
+                <div class="flex items-center gap-2.5">
+                    <div class="status-dot status-indicator w-2 h-2 rounded-full bg-zinc-700 transition-all duration-300 flex-shrink-0"></div>
+                    <button class="btn-press flex-1 py-2 bg-transparent border border-cyber-amber/30 rounded-lg
+                                   text-cyber-amber font-semibold text-[10px] uppercase tracking-[0.08em]
+                                   hover:bg-cyber-amber/5 hover:border-cyber-amber/60 transition-all duration-200"
                             onclick="openProductionSite()">
-                        🌍 Voir le Site Live
+                        🌍 Live
                     </button>
-                    <div class="status-dot status-indicator w-2.5 h-2.5 rounded-full bg-zinc-700 transition-all duration-300 flex-shrink-0"></div>
+                    <div class="status-dot status-indicator w-2 h-2 rounded-full bg-zinc-700 transition-all duration-300 flex-shrink-0"></div>
                 </div>
 
-                <button class="btn-press w-full py-3 bg-transparent border border-zinc-800/40 rounded-xl
-                               text-zinc-600 hover:text-red-400 text-xs uppercase tracking-[0.1em] font-medium
+                <button class="btn-press w-full py-2 bg-transparent border border-zinc-800/30 rounded-lg
+                               text-zinc-600 hover:text-red-400 text-[9px] uppercase tracking-[0.08em] font-medium
                                transition-colors duration-200"
                         onclick="fullReset()">
-                    🗑️ Reset & Clear Cache
+                    🗑️ Reset
                 </button>
             </div>
         </div>
 
         <!-- Liste des fichiers -->
-        <div id="fileList" class="space-y-5"></div>
+        <div id="fileList" class="file-list-container space-y-2"></div>
 
-        <!-- Signature -->
-        <footer class="text-center pt-12 pb-6 text-xs text-zinc-800 tracking-[0.15em] font-medium uppercase">
-            Made by Brahim Laiche <span class="text-zinc-700">2026</span> Paris
+        <!-- Signature discrète -->
+        <footer class="text-center pt-8 pb-4 text-[9px] text-zinc-800 tracking-[0.12em] font-medium uppercase flex-shrink-0">
+            Brahim Laiche <span class="text-zinc-700">2026</span>
         </footer>
     </div>
 
@@ -221,7 +246,7 @@
         }
 
         function fullReset() {
-            if(confirm("Voulez-vous vraiment effacer le token et le cache ?")) {
+            if(confirm("Effacer token et cache ?")) {
                 localStorage.clear();
                 location.reload();
             }
@@ -231,7 +256,7 @@
             const t = document.getElementById('toast'); 
             t.innerText = m; 
             t.style.display = 'block'; 
-            setTimeout(() => t.style.display = 'none', 3000); 
+            setTimeout(() => t.style.display = 'none', 2500); 
         }
 
         function openConfirm(msg, callback) { 
@@ -246,12 +271,12 @@
 
         function setStatusClass(className) {
             document.querySelectorAll('.status-indicator').forEach(dot => {
-                dot.className = "status-dot status-indicator w-2.5 h-2.5 rounded-full transition-all duration-300 flex-shrink-0 " + className;
+                dot.className = "status-dot status-indicator w-2 h-2 rounded-full transition-all duration-300 flex-shrink-0 " + className;
             });
         }
 
         function openProductionSite() {
-            if (!globalRepoExact) return notify("⚠️ Aucun repo chargé");
+            if (!globalRepoExact) return notify("⚠️ Aucun repo");
             window.open(`https://${globalRepoExact.split('/')[0].toLowerCase()}.github.io/${globalRepoExact.split('/')[1]}/?t=${Date.now()}`, '_blank');
         }
 
@@ -265,10 +290,10 @@
                     const lastRun = data.workflow_runs[0];
                     if (lastRun.id === lastRunIdBeforeUpdate) { setStatusClass("bg-cyber-amber shadow-glow-amber animate-[pulse-amber_0.8s_infinite_alternate]"); return; }
                     if (lastRun.status === "completed") {
-                        setStatusClass(lastRun.conclusion === "success" ? "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]");
+                        setStatusClass(lastRun.conclusion === "success" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]");
                         lastRunIdBeforeUpdate = lastRun.id;
                         clearInterval(statusInterval);
-                        if(lastRun.conclusion === "success") notify("✅ DÉPLOIEMENT RÉUSSI");
+                        if(lastRun.conclusion === "success") notify("✅ Déployé");
                     } else { setStatusClass("bg-cyber-amber shadow-glow-amber animate-[pulse-amber_0.8s_infinite_alternate]"); }
                 }
             } catch (e) { console.error(e); }
@@ -283,7 +308,7 @@
         async function fetchRepo() {
             const token = document.getElementById('ghToken').value;
             const repoInput = document.getElementById('repoName').value.trim();
-            if(!token || !repoInput) return notify("⚠️ Identifiants manquants");
+            if(!token || !repoInput) return notify("⚠️ ID manquants");
             try {
                 const repoMetaRes = await fetch(`https://api.github.com/repos/${repoInput}`, { headers: { 'Authorization': `token ${token}` } });
                 const repoMetaData = await repoMetaRes.json();
@@ -294,7 +319,7 @@
                 if(runData.workflow_runs && runData.workflow_runs[0]) {
                     lastRunIdBeforeUpdate = runData.workflow_runs[0].id;
                     const last = runData.workflow_runs[0];
-                    setStatusClass(last.status === "completed" ? (last.conclusion === "success" ? "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]") : "bg-cyber-amber shadow-glow-amber animate-[pulse-amber_0.8s_infinite_alternate]");
+                    setStatusClass(last.status === "completed" ? (last.conclusion === "success" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]") : "bg-cyber-amber shadow-glow-amber animate-[pulse-amber_0.8s_infinite_alternate]");
                 }
 
                 const res = await fetch(`https://api.github.com/repos/${globalRepoExact}/contents/`, { headers: { 'Authorization': `token ${token}` } });
@@ -309,56 +334,59 @@
                         renderFileCard(f, content);
                     }
                 }
-                notify("PROJET SYNCHRONISÉ");
-            } catch(e) { notify("ERREUR DE CONNEXION"); }
+                notify("✅ Synchronisé");
+            } catch(e) { notify("Erreur connexion"); }
         }
 
         function renderFileCard(f, content) {
             const div = document.createElement('div');
-            div.className = 'bg-deep-600/80 backdrop-blur-sm border border-zinc-800/60 rounded-2xl overflow-hidden shadow-neu-dark';
+            div.className = 'file-card bg-deep-600/80 backdrop-blur-sm border border-zinc-800/60 rounded-xl overflow-hidden shadow-neu-dark';
+            
+            // Tronquer le nom si trop long
+            const displayName = f.name.length > 25 ? f.name.substring(0, 22) + '...' : f.name;
             
             div.innerHTML = `
-                <div class="px-5 py-4 bg-deep-500/60 border-b border-zinc-800/40 flex items-center gap-3">
-                    <span class="w-2 h-2 bg-cyber-amber rounded-full shadow-glow-amber flex-shrink-0"></span>
-                    <span class="font-mono font-bold text-cyber-amber text-sm tracking-wide">MOD : ${f.name}</span>
-                    <span class="ml-auto text-[10px] text-zinc-600 font-mono uppercase tracking-wider">editable</span>
+                <div class="px-3.5 py-2.5 bg-deep-500/60 border-b border-zinc-800/40 flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 bg-cyber-amber rounded-full shadow-glow-amber flex-shrink-0"></span>
+                    <span class="font-mono font-bold text-cyber-amber text-[11px] tracking-wide truncate">${displayName}</span>
+                    <span class="ml-auto text-[8px] text-zinc-600 font-mono uppercase tracking-wider flex-shrink-0">edit</span>
                 </div>
                 
-                <div class="flex items-center gap-2 px-4 py-3 bg-deep-700/50 border-b border-zinc-800/30">
-                    <input type="text" id="in-${f.sha}" placeholder="Rechercher dans le fichier..."
-                           class="flex-1 h-9 bg-deep-800 border border-zinc-700/40 rounded-lg px-3 text-zinc-200 text-xs font-mono placeholder-zinc-600
+                <div class="flex items-center gap-1.5 px-3 py-2 bg-deep-700/50 border-b border-zinc-800/30">
+                    <input type="text" id="in-${f.sha}" placeholder="Rechercher..."
+                           class="flex-1 h-8 bg-deep-800 border border-zinc-700/40 rounded-md px-2.5 text-zinc-200 text-[11px] font-mono placeholder-zinc-600
                                   focus:outline-none focus:border-cyber-amber/50 transition-all duration-200">
-                    <button class="btn-press h-9 px-3 bg-deep-500 border border-zinc-700/40 rounded-lg text-cyber-amber font-bold text-[10px] uppercase tracking-wider hover:bg-deep-500/80 transition-colors"
+                    <button class="btn-press h-8 px-2.5 bg-deep-500 border border-zinc-700/40 rounded-md text-cyber-amber font-bold text-[9px] uppercase tracking-wider hover:bg-deep-500/80 transition-colors"
                             onclick="scan('${f.sha}')">Find</button>
-                    <button class="btn-press h-9 px-2.5 bg-deep-500 border border-zinc-700/40 rounded-lg text-zinc-400 hover:text-white font-bold text-sm transition-colors"
+                    <button class="btn-press h-8 px-2 bg-deep-500 border border-zinc-700/40 rounded-md text-zinc-400 hover:text-white font-bold text-xs transition-colors"
                             onclick="prevMatch('${f.sha}')">▲</button>
-                    <button class="btn-press h-9 px-2.5 bg-deep-500 border border-zinc-700/40 rounded-lg text-zinc-400 hover:text-white font-bold text-sm transition-colors"
+                    <button class="btn-press h-8 px-2 bg-deep-500 border border-zinc-700/40 rounded-md text-zinc-400 hover:text-white font-bold text-xs transition-colors"
                             onclick="nextMatch('${f.sha}')">▼</button>
-                    <div id="count-${f.sha}" class="text-[10px] text-cyber-amber font-mono font-bold min-w-[36px] text-center bg-deep-800 rounded-md px-2 py-1.5">
+                    <div id="count-${f.sha}" class="text-[9px] text-cyber-amber font-mono font-bold min-w-[32px] text-center bg-deep-800 rounded-md px-1.5 py-1">
                         0/0
                     </div>
                 </div>
                 
-                <textarea id="txt-${f.sha}" class="editor-box w-full h-[420px] bg-[#08080a] text-zinc-300 border-none p-5 
-                                       font-mono text-[13px] leading-[22px] outline-none resize-y
+                <textarea id="txt-${f.sha}" class="editor-box w-full h-[280px] bg-[#08080a] text-zinc-300 border-none p-3 
+                                       font-mono text-[12px] leading-[20px] outline-none resize-none
                                        placeholder-zinc-700 focus:text-zinc-100 transition-colors duration-200"
                           spellcheck="false" 
                           oninput="filesData['${f.sha}'].content = this.value"
-                          placeholder="// Éditez votre code ici..."></textarea>
+                          placeholder="// Éditez ici..."></textarea>
                 
-                <div id="hist-${f.sha}" class="hidden bg-deep-800 border-t border-zinc-800/40"></div>
+                <div id="hist-${f.sha}" class="hidden bg-deep-800 border-t border-zinc-800/40 max-h-[200px] overflow-y-auto"></div>
                 
-                <div class="flex gap-3 p-4 bg-deep-500/40 border-t border-zinc-800/40">
-                    <button class="btn-press flex-1 py-3 bg-deep-500 border border-zinc-700/40 rounded-xl 
-                                   text-zinc-400 hover:text-white font-semibold text-xs uppercase tracking-wider
+                <div class="flex gap-2 p-3 bg-deep-500/40 border-t border-zinc-800/40">
+                    <button class="btn-press flex-1 py-2.5 bg-deep-500 border border-zinc-700/40 rounded-lg 
+                                   text-zinc-400 hover:text-white font-semibold text-[10px] uppercase tracking-wider
                                    transition-all duration-200"
                             onclick="toggleHistory('${f.sha}')">
                         Historique
                     </button>
-                    <button class="btn-press flex-[2] py-3 bg-cyber-violet rounded-xl text-white font-bold text-xs uppercase tracking-[0.12em]
+                    <button class="btn-press flex-[2] py-2.5 bg-cyber-violet rounded-lg text-white font-bold text-[10px] uppercase tracking-[0.1em]
                                    shadow-glow-violet hover:bg-cyber-violet-hover transition-all duration-200"
                             onclick="prepareSave('${f.sha}')">
-                        Update Core
+                        Update
                     </button>
                 </div>
             `;
@@ -415,19 +443,19 @@
             if(historyDiv.style.display === 'block') { historyDiv.style.display = 'none'; return; }
             const token = document.getElementById('ghToken').value;
             const file = filesData[sha];
-            notify("LECTURE LOGS...");
+            notify("Lecture logs...");
             try {
                 const res = await fetch(`https://api.github.com/repos/${globalRepoExact}/commits?path=${file.path}&per_page=5`, { headers: { 'Authorization': `token ${token}` } });
                 const commits = await res.json();
                 historyDiv.innerHTML = commits.map(c => `
-                    <div class="px-5 py-3 border-b border-zinc-800/40 cursor-pointer hover:bg-deep-600/60 transition-colors duration-150"
+                    <div class="px-3.5 py-2.5 border-b border-zinc-800/40 cursor-pointer hover:bg-deep-600/60 transition-colors duration-150"
                          onclick="loadOldVersion('${sha}', '${c.sha}')">
-                        <div class="text-cyber-amber font-mono font-bold text-xs mb-1">${new Date(c.commit.author.date).toLocaleString()}</div>
-                        <div class="text-zinc-500 text-[11px] truncate">${c.commit.message}</div>
+                        <div class="text-cyber-amber font-mono font-bold text-[10px] mb-0.5">${new Date(c.commit.author.date).toLocaleString()}</div>
+                        <div class="text-zinc-500 text-[10px] truncate">${c.commit.message}</div>
                     </div>
-                `).join('') || '<div class="px-5 py-4 text-zinc-600 text-xs">Aucun log disponible</div>';
+                `).join('') || '<div class="px-3.5 py-3 text-zinc-600 text-[10px]">Aucun log</div>';
                 historyDiv.style.display = 'block';
-            } catch(e) { notify("ERREUR LOGS"); }
+            } catch(e) { notify("Erreur logs"); }
         }
 
         async function loadOldVersion(sha, commitSha) {
@@ -439,12 +467,12 @@
                 const oldContent = decodeURIComponent(escape(atob(data.content)));
                 document.getElementById(`txt-${sha}`).value = oldContent;
                 filesData[sha].content = oldContent;
-                notify("VERSION RESTAURÉE");
+                notify("Version restaurée");
                 document.getElementById(`hist-${sha}`).style.display = 'none';
-            } catch(e) { notify("ERREUR RESTAURATION"); }
+            } catch(e) { notify("Erreur restauration"); }
         }
 
-        function prepareSave(sha) { openConfirm(`DÉPLOYER LES MODIFICATIONS ?`, () => executeUpdate(sha)); }
+        function prepareSave(sha) { openConfirm(`Déployer les modifications ?`, () => executeUpdate(sha)); }
         
         async function executeUpdate(sha) {
             const token = document.getElementById('ghToken').value;
@@ -457,13 +485,11 @@
                     headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: "Sniper Core Update", content: btoa(unescape(encodeURIComponent(file.content))), sha: latest.sha })
                 });
-                if(res.ok) { notify("PUSH RÉUSSI"); startStatusPolling(); }
-            } catch (e) { notify("ERREUR PUSH"); }
+                if(res.ok) { notify("Push réussi"); startStatusPolling(); }
+            } catch (e) { notify("Erreur push"); }
         }
     </script>
 
     <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script>
-
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script>
 </body>
 </html>
